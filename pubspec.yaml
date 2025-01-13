@@ -39,6 +39,7 @@ dependencies:
   postgres: ^2.6.2
   mongo_dart: ^0.9.3
   mssql_connection: ^1.1.3
+  logger: ^2.5.0
 
 
 dev_dependencies:

@@ -1,6 +1,7 @@
+// Updated add_configuration_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'database_service.dart';
 
 class AddConfigurationScreen extends StatefulWidget {
   const AddConfigurationScreen({Key? key}) : super(key: key);
@@ -16,89 +17,101 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
   final _dbPasswordController = TextEditingController();
   final _dbPortController = TextEditingController();
   final _dbConnectionStringController = TextEditingController();
-  String _dbClass = 'mysql';
+  final _configNameController = TextEditingController();
+  String _dbType = 'mysql'; // Default type
+  final List<String> databaseTypes = ['mysql', 'mssql', 'mongodb', 'pgsql'];
   final _auth = FirebaseAuth.instance;
-  final _dbRef = FirebaseDatabase.instance.ref();
+  final DatabaseService _databaseService = DatabaseService();
 
   void _saveConfiguration() async {
     final userId = _auth.currentUser?.uid ?? '';
-    final id = _dbRef.child('databases/$userId').push().key;
-    final config = {
-      'id': id,
-      'dbName': _dbNameController.text,
-      'dbUrl': _dbUrlController.text,
-      'dbUser': _dbUserController.text,
-      'dbPassword': _dbPasswordController.text,
-      'dbPort': int.tryParse(_dbPortController.text) ?? 0,
-      'dbConnectionString': _dbClass == 'mongodb' ? _dbConnectionStringController.text : '',
-      'dbClass': _dbClass,
-      'dbStatus': 'Unknown',
-      'dbSize': 0,
-      'creationDate': DateTime.now().millisecondsSinceEpoch,
+
+    final newConfig = {
+      'configname': _configNameController.text,
+      'dbname': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ?_dbNameController.text : '',
+      'dburl': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? _dbUrlController.text : '',
+      'dbuser': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? _dbUserController.text : '',
+      'dbpassword': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? _dbPasswordController.text : '',
+      'dbport': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? int.tryParse(_dbPortController.text) ?? 0 : 0,
+      'dbconnectionstring': _dbType == 'mongodb' ? _dbConnectionStringController.text : '',
+      'dbclass': _dbType,
     };
 
-    await _dbRef.child('databases/$userId/$id').set(config);
-    Navigator.pop(context);
+    try {
+      await _databaseService.addConfiguration(userId, newConfig);
+      if(mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      print('Error adding configuration: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Add Configuration')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextFormField(
-              controller: _dbNameController,
-              decoration: const InputDecoration(labelText: 'Database Name'),
-            ),
-            DropdownButtonFormField<String>(
-              value: _dbClass,
-              items: const [
-                DropdownMenuItem(value: 'mongodb', child: Text('mongodb')),
-                DropdownMenuItem(value: 'mysql', child: Text('mysql')),
-                DropdownMenuItem(value: 'mssql', child: Text('mssql')),
-                DropdownMenuItem(value: 'pgsql', child: Text('pgsql')),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              TextFormField(
+                controller: _configNameController,
+                decoration: const InputDecoration(labelText: 'Configuration Name'),
+              ),
+              DropdownButtonFormField<String>(
+                value: _dbType,
+                items: databaseTypes.map((type) {
+                  return DropdownMenuItem<String>(
+                    value: type,
+                    child: Text(type),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _dbType = value!;
+                  });
+                },
+                decoration: const InputDecoration(labelText: 'Database Type'),
+              ),
+              if (['mysql', 'mssql', 'pgsql'].contains(_dbType)) ...[
+                TextFormField(
+                  controller: _dbNameController,
+                  decoration: const InputDecoration(labelText: 'Database Name'),
+                ),
+                TextFormField(
+                  controller: _dbUrlController,
+                  decoration: const InputDecoration(labelText: 'URL'),
+                ),
+                TextFormField(
+                  controller: _dbUserController,
+                  decoration: const InputDecoration(labelText: 'User'),
+                ),
+                TextFormField(
+                  controller: _dbPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                ),
+                TextFormField(
+                  controller: _dbPortController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Port'),
+                ),
+              ] else if (_dbType == 'mongodb') ...[
+                TextFormField(
+                  controller: _dbConnectionStringController,
+                  decoration: const InputDecoration(labelText: 'Connection String'),
+                ),
               ],
-              onChanged: (value) {
-                setState(() {
-                  _dbClass = value!;
-                });
-              },
-              decoration: const InputDecoration(labelText: 'Database Type'),
-            ),
-            if (['mysql', 'mssql', 'pgsql'].contains(_dbClass)) ...[
-              TextFormField(
-                controller: _dbUrlController,
-                decoration: const InputDecoration(labelText: 'URL'),
-              ),
-              TextFormField(
-                controller: _dbUserController,
-                decoration: const InputDecoration(labelText: 'User'),
-              ),
-              TextFormField(
-                controller: _dbPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password'),
-              ),
-              TextFormField(
-                controller: _dbPortController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Port'),
-              ),
-            ] else ...[
-              TextFormField(
-                controller: _dbConnectionStringController,
-                decoration: const InputDecoration(labelText: 'Connection String'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _saveConfiguration,
+                child: const Text('Add Configuration'),
               ),
             ],
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _saveConfiguration,
-              child: const Text('Save'),
-            ),
-          ],
+          ),
         ),
       ),
     );

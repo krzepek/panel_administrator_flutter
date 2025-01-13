@@ -1,60 +1,129 @@
 import 'dart:convert';
 
 import 'package:mysql1/mysql1.dart';
-import 'package:postgres/postgres.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 import 'package:mssql_connection/mssql_connection.dart';
+import 'package:postgres/postgres.dart';
 
 class DatabaseService {
+  final PostgreSQLConnection _connection = PostgreSQLConnection(
+    '192.168.12.63',
+    5432,
+    'panel_administratora',
+    username: 'admin',
+    password: 'paneladministratora2025!',
+  );
+
+  Future<void> initialize() async {
+    await _connection.open();
+    await _createTableIfNotExists();
+  }
+
+  Future<void> _createTableIfNotExists() async {
+    await _connection.query('''
+      CREATE TABLE IF NOT EXISTS configurations (
+        id SERIAL PRIMARY KEY,
+        firebase_user_id VARCHAR(255) NOT NULL,
+        configname VARCHAR(255) NOT NULL,
+        dbname VARCHAR(255) NOT NULL,
+        dburl VARCHAR(255) NOT NULL,
+        dbuser VARCHAR(255) NOT NULL,
+        dbpassword VARCHAR(255) NOT NULL,
+        dbport INTEGER NOT NULL,
+        dbclass VARCHAR(50) NOT NULL,
+        dbconnectionstring VARCHAR(255) NOT NULL
+      );
+    ''');
+  }
+
+  Future<void> ensureConnectionOpen() async {
+    if (_connection.isClosed) {
+      await _connection.open();
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchConfigurations(String firebaseUserId) async {
+    await ensureConnectionOpen();
+    final results = await _connection.mappedResultsQuery(
+      'SELECT * FROM configurations WHERE firebase_user_id = @firebaseUserId',
+      substitutionValues: {'firebaseUserId': firebaseUserId},
+    );
+    return results.map((row) => row['configurations']!).toList();
+  }
+
+  Future<void> addConfiguration(String firebaseUserId, Map<String, dynamic> config) async {
+    await ensureConnectionOpen();
+    await _connection.query(
+      'INSERT INTO configurations (firebase_user_id, configname, dbname, dburl, dbuser, dbpassword, dbport, dbclass, dbconnectionstring) VALUES (@firebaseUserId, @configname, @dbname, @dburl, @dbuser, @dbpassword, @dbport, @dbclass, @dbconnectionstring)',
+      substitutionValues: {'firebaseUserId': firebaseUserId, ...config},
+    );
+  }
+
+  Future<void> updateConfiguration(String id, String firebaseUserId, Map<String, dynamic> updatedConfig) async {
+    await ensureConnectionOpen();
+    await _connection.query(
+      'UPDATE configurations SET configname = @configname, dbname = @dbname, dburl = @dburl, dbuser = @dbuser, dbpassword = @dbpassword, dbport = @dbport, dbclass = @dbclass, dbconnectionstring = @dbconnectionstring WHERE id = @id AND firebase_user_id = @firebaseUserId',
+      substitutionValues: {'id': id, 'firebaseUserId': firebaseUserId, ...updatedConfig},
+    );
+  }
+
+  Future<void> deleteConfiguration(String id, String firebaseUserId) async {
+    await ensureConnectionOpen();
+    await _connection.query(
+      'DELETE FROM configurations WHERE id = @id AND firebase_user_id = @firebaseUserId',
+      substitutionValues: {'id': id, 'firebaseUserId': firebaseUserId},
+    );
+  }
+
   Future<Map<String, dynamic>> fetchDatabaseInfo(Map<String, dynamic> config) async {
-    switch (config['dbClass']) {
+    switch (config['dbclass']) {
       case 'pgsql':
         return await _fetchPostgreSQLInfo(
-          config['dbUrl'],
-          config['dbPort'],
-          config['dbUser'],
-          config['dbPassword'],
-          config['dbName'],
+          config['dburl'],
+          config['dbport'],
+          config['dbuser'],
+          config['dbpassword'],
+          config['dbname'],
         );
       case 'mysql':
         return await _fetchMySQLInfo(
-          config['dbUrl'],
-          config['dbPort'],
-          config['dbUser'],
-          config['dbPassword'],
-          config['dbName'],
+          config['dburl'],
+          config['dbport'],
+          config['dbuser'],
+          config['dbpassword'],
+          config['dbname'],
         );
       case 'mssql':
         return await _fetchMsSQLInfo(
-          config['dbUrl'],
-          config['dbPort'],
-          config['dbUser'],
-          config['dbPassword'],
-          config['dbName'],
+          config['dburl'],
+          config['dbport'],
+          config['dbuser'],
+          config['dbpassword'],
+          config['dbname'],
         );
       case 'mongodb':
-        return await _fetchMongoDBInfo(config['dbUrl']);
+        return await _fetchMongoDBInfo(config['dbconnectionstring']);
       default:
-        return {'status': 'Unknown', 'size': 0};
+        return {'status': 'Unknown', 'size': '0'};
     }
   }
 
   Future<Map<String, dynamic>> _fetchPostgreSQLInfo(
       String host, int port, String user, String password, String dbName) async {
     try {
-      final connection = PostgreSQLConnection(host, port, dbName, username: user, password: password);
+      final connection = PostgreSQLConnection(host, port, dbName, username: user, password: password, timeoutInSeconds: 5, useSSL: true);
       await connection.open();
 
-      // Use a Map for substitutionValues
       final results = await connection.query(
-        'SELECT pg_database_size(@dbName) / 1024 / 1024 AS size',
-        substitutionValues: {'dbName': dbName},
+        'SELECT pg_database_size(@dbname) / 1024 / 1024 AS size',
+        substitutionValues: {'dbname': dbName},
       );
 
       await connection.close();
-      return {'status': 'Online', 'size': results.first[0] ?? 0};
+      return {'status': 'Online', 'size': results.first[0].toString()};
     } catch (e) {
-      return {'status': 'Error', 'size': 0};
+      print('Error fetching PostgreSQL info: $e');
+      return {'status': 'Error', 'size': '0'};
     }
   }
 
@@ -67,17 +136,16 @@ class DatabaseService {
         user: user,
         password: password,
         db: dbName,
+        timeout: Duration(seconds: 5),
       );
       final conn = await MySqlConnection.connect(settings);
       final results = await conn.query(
-        'SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size '
-        'FROM information_schema.tables WHERE table_schema = ?',
-        [dbName],
+        'SELECT table_schema "?", ROUND(SUM(data_length + index_length) / 1024 / 1024, 1) "DB Size in MB" FROM information_schema.tables GROUP BY table_schema;', [dbName]
       );
       await conn.close();
-      return {'status': 'Online', 'size': results.first['size'] ?? 0};
+      return {'status': 'Online', 'size': results.first['size'].toString()};
     } catch (e) {
-      return {'status': 'Error', 'size': 0};
+      return {'status': 'Error', 'size': '0'};
     }
   }
 
@@ -91,7 +159,7 @@ class DatabaseService {
         databaseName: dbName,
         username: user,
         password: password,
-        timeoutInSeconds: 15,
+        timeoutInSeconds: 5,
       );
 
       if (connected) {
@@ -107,25 +175,25 @@ class DatabaseService {
         if (results.isNotEmpty) {
           return {
             'status': 'Online',
-            'size': jsonDecode(results)['size'] ?? 0,
+            'size': jsonDecode(results)['size'].toString(),
           };
         }
       }
-      return {'status': 'Online', 'size': 0};
+      return {'status': 'Online', 'size': '0'};
     } catch (e) {
-      return {'status': 'Error', 'size': 0};
+      return {'status': 'Error', 'size': '0'};
     }
   }
 
   Future<Map<String, dynamic>> _fetchMongoDBInfo(String connectionString) async {
     try {
       final db = Db(connectionString);
-      await db.open();
+      await db.open(writeConcern: WriteConcern(wtimeout: 5));
       final stats = await db.serverStatus();
       await db.close();
-      return {'status': 'Online', 'size': stats['dataSize'] ?? 0};
+      return {'status': 'Online', 'size': stats['dataSize'].toString()};
     } catch (e) {
-      return {'status': 'Error', 'size': 0};
+      return {'status': 'Error', 'size': '0'};
     }
   }
 }
