@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "719319143941",
+    "firebase_url": "https://panel-administratora-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "panel-administratora",
+    "storage_bucket": "panel-administratora.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:719319143941:android:0fecfff5394d5d70dfee6c",
+        "android_client_info": {
+          "package_name": "com.example.panel_administrator_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8PA5zH29vFmeXk4lIJvmT5I5AUrWWYeI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:719319143941:android:7fa31f1eb2ad7be5dfee6c",
+        "android_client_info": {
+          "package_name": "com.example.paneladministratora"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8PA5zH29vFmeXk4lIJvmT5I5AUrWWYeI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
