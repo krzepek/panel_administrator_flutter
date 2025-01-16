@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:mysql1/mysql1.dart';
 import 'package:mongo_dart/mongo_dart.dart';
@@ -31,7 +32,8 @@ class DatabaseService {
         dbpassword VARCHAR(255) NOT NULL,
         dbport INTEGER NOT NULL,
         dbclass VARCHAR(50) NOT NULL,
-        dbconnectionstring VARCHAR(255) NOT NULL
+        ssl VARCHAR(3) NOT NULL,
+        cluster VARCHAR(255) NOT NULL
       );
     ''');
   }
@@ -54,7 +56,7 @@ class DatabaseService {
   Future<void> addConfiguration(String firebaseUserId, Map<String, dynamic> config) async {
     await ensureConnectionOpen();
     await _connection.query(
-      'INSERT INTO configurations (firebase_user_id, configname, dbname, dburl, dbuser, dbpassword, dbport, dbclass, dbconnectionstring) VALUES (@firebaseUserId, @configname, @dbname, @dburl, @dbuser, @dbpassword, @dbport, @dbclass, @dbconnectionstring)',
+      'INSERT INTO configurations (firebase_user_id, configname, dbname, dburl, dbuser, dbpassword, dbport, dbclass, ssl, cluster) VALUES (@firebaseUserId, @configname, @dbname, @dburl, @dbuser, @dbpassword, @dbport, @dbclass, @ssl, @cluster)',
       substitutionValues: {'firebaseUserId': firebaseUserId, ...config},
     );
   }
@@ -62,7 +64,7 @@ class DatabaseService {
   Future<void> updateConfiguration(String id, String firebaseUserId, Map<String, dynamic> updatedConfig) async {
     await ensureConnectionOpen();
     await _connection.query(
-      'UPDATE configurations SET configname = @configname, dbname = @dbname, dburl = @dburl, dbuser = @dbuser, dbpassword = @dbpassword, dbport = @dbport, dbclass = @dbclass, dbconnectionstring = @dbconnectionstring WHERE id = @id AND firebase_user_id = @firebaseUserId',
+      'UPDATE configurations SET configname = @configname, dbname = @dbname, dburl = @dburl, dbuser = @dbuser, dbpassword = @dbpassword, dbport = @dbport, dbclass = @dbclass, ssl = @ssl, cluster = @cluster WHERE id = @id AND firebase_user_id = @firebaseUserId',
       substitutionValues: {'id': id, 'firebaseUserId': firebaseUserId, ...updatedConfig},
     );
   }
@@ -84,6 +86,7 @@ class DatabaseService {
           config['dbuser'],
           config['dbpassword'],
           config['dbname'],
+          config['ssl'],
         );
       case 'mysql':
         return await _fetchMySQLInfo(
@@ -92,6 +95,7 @@ class DatabaseService {
           config['dbuser'],
           config['dbpassword'],
           config['dbname'],
+          config['ssl'],
         );
       case 'mssql':
         return await _fetchMsSQLInfo(
@@ -100,18 +104,34 @@ class DatabaseService {
           config['dbuser'],
           config['dbpassword'],
           config['dbname'],
+          config['ssl'],
         );
       case 'mongodb':
-        return await _fetchMongoDBInfo(config['dbconnectionstring']);
+        return await _fetchMongoDBInfo(
+          config['dburl'],
+          config['dbport'],
+          config['dbuser'],
+          config['dbpassword'],
+          config['dbname'],
+          config['ssl'],
+          config['cluster'],
+        );
       default:
         return {'status': 'Unknown', 'size': '0'};
     }
   }
 
   Future<Map<String, dynamic>> _fetchPostgreSQLInfo(
-      String host, int port, String user, String password, String dbName) async {
+      String host, int port, String user, String password, String dbName, String ssl) async {
     try {
-      final connection = PostgreSQLConnection(host, port, dbName, username: user, password: password, timeoutInSeconds: 5, useSSL: true);
+      final connection = PostgreSQLConnection(
+        host,
+        port,
+        dbName,
+        username: user,
+        password: password,
+        timeoutInSeconds: 5,
+        useSSL: ssl == 'yes' ? true : false);
       await connection.open();
 
       final results = await connection.query(
@@ -128,7 +148,7 @@ class DatabaseService {
   }
 
   Future<Map<String, dynamic>> _fetchMySQLInfo(
-      String host, int port, String user, String password, String dbName) async {
+      String host, int port, String user, String password, String dbName, String ssl) async {
     try {
       final settings = ConnectionSettings(
         host: host,
@@ -136,21 +156,30 @@ class DatabaseService {
         user: user,
         password: password,
         db: dbName,
-        timeout: Duration(seconds: 5),
       );
+      
       final conn = await MySqlConnection.connect(settings);
-      final results = await conn.query(
-        'SELECT table_schema "?", ROUND(SUM(data_length + index_length) / 1024 / 1024, 1) "DB Size in MB" FROM information_schema.tables GROUP BY table_schema;', [dbName]
-      );
-      await conn.close();
-      return {'status': 'Online', 'size': results.first['size'].toString()};
+      await Future.delayed(Duration(seconds: 1));
+      try {
+        final results = await conn.query(
+          'SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size FROM information_schema.TABLES WHERE table_schema = ? GROUP BY table_schema;', [dbName]
+        );
+        if (results.isNotEmpty) {
+          return {'status': 'Online', 'size': results.first['size'].toString()};
+        } else {
+          return {'status': 'Online', 'size': "0"};
+        }
+      } finally {
+        await conn.close();
+      }
     } catch (e) {
+      print('Error fetching MySQL info: $e');
       return {'status': 'Error', 'size': '0'};
     }
   }
 
   Future<Map<String, dynamic>> _fetchMsSQLInfo(
-      String host, int port, String user, String password, String dbName) async {
+      String host, int port, String user, String password, String dbName, String ssl) async {
     try {
       final mssqlConnection = MssqlConnection.getInstance();
       final connected = await mssqlConnection.connect(
@@ -185,14 +214,21 @@ class DatabaseService {
     }
   }
 
-  Future<Map<String, dynamic>> _fetchMongoDBInfo(String connectionString) async {
+  Future<Map<String, dynamic>> _fetchMongoDBInfo(String host, int port, String user, String password, String dbName, String ssl, String cluster) async {
     try {
-      final db = Db(connectionString);
+      String connectionString = 'mongodb+srv://$user:$password@$cluster.$host:$port/$dbName?ssl=${ssl == 'yes' ? 'true' : 'false'}';
+      var db = await Db.create(connectionString);
       await db.open(writeConcern: WriteConcern(wtimeout: 5));
-      final stats = await db.serverStatus();
+      final stats = await db.runCommand({'dbStats': 1});
       await db.close();
-      return {'status': 'Online', 'size': stats['dataSize'].toString()};
+      if(stats['dataSize'] == null) {
+        return {'status': 'Online', 'size': '0'};
+      } else {
+        double size = int.parse(stats['dataSize'].toString())/(1024*1024);
+        return {'status': 'Online', 'size': size.toStringAsFixed(2)};
+      }
     } catch (e) {
+      print('Error fetching MongoDB info: $e');
       return {'status': 'Error', 'size': '0'};
     }
   }

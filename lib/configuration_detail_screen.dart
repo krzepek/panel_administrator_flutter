@@ -17,13 +17,15 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
   final _dbUserController = TextEditingController();
   final _dbPasswordController = TextEditingController();
   final _dbPortController = TextEditingController();
-  final _dbConnectionStringController = TextEditingController();
+  final _clusterController = TextEditingController();
   final _configNameController = TextEditingController();
   late String _dbType;
+  late String _sslType;
   bool _isEditing = false;
   final _auth = FirebaseAuth.instance;
   final DatabaseService _databaseService = DatabaseService();
   final List<String> databaseTypes = ['mysql', 'mssql', 'mongodb', 'pgsql'];
+  final List<String> sslTypes = ['yes', 'no'];
 
   @override
   void initState() {
@@ -34,9 +36,10 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
     _dbUserController.text = config['dbuser'];
     _dbPasswordController.text = config['dbpassword'];
     _dbPortController.text = config['dbport'] != '' ? config['dbport'].toString() : '';
-    _dbConnectionStringController.text = config['dbconnectionstring'];
+    _clusterController.text = config['cluster'];
     _dbType = config['dbclass'];
     _configNameController.text = config['configname'];
+    _sslType = config['ssl'];
   }
 
   @override
@@ -46,7 +49,7 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
     _dbUserController.dispose();
     _dbPasswordController.dispose();
     _dbPortController.dispose();
-    _dbConnectionStringController.dispose();
+    _clusterController.dispose();
     super.dispose();
   }
 
@@ -60,12 +63,13 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
     final userId = _auth.currentUser?.uid ?? '';
     final configId = widget.config['id'];
     final updatedConfig = {
-      'dbname': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? _dbNameController.text : '',
-      'dburl': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? _dbUrlController.text : '',
-      'dbuser': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? _dbUserController.text : '',
-      'dbpassword': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? _dbPasswordController.text : '',
-      'dbport': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? int.tryParse(_dbPortController.text) ?? 0 : 0,
-      'dbconnectionstring': _dbType == 'mongodb' ? _dbConnectionStringController.text : '',
+      'dbname': _dbNameController.text,
+      'dburl': _dbUrlController.text,
+      'dbuser': _dbUserController.text,
+      'dbpassword': _dbPasswordController.text,
+      'dbport': int.tryParse(_dbPortController.text) ?? 0,
+      'cluster': _dbType == 'mongodb' ? _clusterController.text: '',
+      'ssl': _sslType,
       'dbclass': _dbType,
       'configname': _configNameController.text,
     };
@@ -147,11 +151,72 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
                   decoration: const InputDecoration(labelText: 'Port'),
                   enabled: _isEditing,
                 ),
+                DropdownButtonFormField<String>(
+                  value: _sslType,
+                  items: sslTypes.map((type) {
+                    return DropdownMenuItem<String>(
+                      value: type,
+                      child: Text(type),
+                    );
+                  }).toList(),
+                  onChanged: _isEditing
+                      ? (value) {
+                          setState(() {
+                            _sslType = value!;
+                          });
+                        }
+                      : null,
+                  decoration: const InputDecoration(labelText: 'Require SSL'),
+                ),
               ] else if (_dbType == 'mongodb') ...[
                 TextFormField(
-                  controller: _dbConnectionStringController,
-                  decoration: const InputDecoration(labelText: 'Connection String'),
+                  controller: _dbNameController,
+                  decoration: const InputDecoration(labelText: 'Database Name'),
                   enabled: _isEditing,
+                ),
+                TextFormField(
+                  controller: _clusterController,
+                  decoration: const InputDecoration(labelText: 'Cluster'),
+                  enabled: _isEditing,
+                ),
+                TextFormField(
+                  controller: _dbUrlController,
+                  decoration: const InputDecoration(labelText: 'URL'),
+                  enabled: _isEditing,
+                ),
+                TextFormField(
+                  controller: _dbUserController,
+                  decoration: const InputDecoration(labelText: 'User'),
+                  enabled: _isEditing,
+                ),
+                TextFormField(
+                  controller: _dbPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                  enabled: _isEditing,
+                ),
+                TextFormField(
+                  controller: _dbPortController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Port'),
+                  enabled: _isEditing,
+                ),
+                DropdownButtonFormField<String>(
+                  value: _sslType,
+                  items: sslTypes.map((type) {
+                    return DropdownMenuItem<String>(
+                      value: type,
+                      child: Text(type),
+                    );
+                  }).toList(),
+                  onChanged: _isEditing
+                      ? (value) {
+                          setState(() {
+                            _sslType = value!;
+                          });
+                        }
+                      : null,
+                  decoration: const InputDecoration(labelText: 'Require SSL'),
                 ),
               ],
               const SizedBox(height: 16),

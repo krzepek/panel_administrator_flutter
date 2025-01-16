@@ -168,10 +168,22 @@ class _MainScreenState extends State<MainScreen> {
                 },
               ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToAddConfiguration,
-        child: const Icon(Icons.add),
+      bottomNavigationBar: BottomAppBar(
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 8.0,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: FloatingActionButton(
+              onPressed: _navigateToAddConfiguration,
+              child: const Icon(Icons.add),
+            ),
+          ),
+        ],
       ),
+    ),
     );
   }
 

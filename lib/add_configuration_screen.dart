@@ -16,9 +16,11 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
   final _dbUserController = TextEditingController();
   final _dbPasswordController = TextEditingController();
   final _dbPortController = TextEditingController();
-  final _dbConnectionStringController = TextEditingController();
+  final _clusterController = TextEditingController();
   final _configNameController = TextEditingController();
+  final List<String> sslTypes = ['yes', 'no'];
   String _dbType = 'mysql'; // Default type
+  String _sslType = 'no'; // Default type
   final List<String> databaseTypes = ['mysql', 'mssql', 'mongodb', 'pgsql'];
   final _auth = FirebaseAuth.instance;
   final DatabaseService _databaseService = DatabaseService();
@@ -28,12 +30,13 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
 
     final newConfig = {
       'configname': _configNameController.text,
-      'dbname': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ?_dbNameController.text : '',
-      'dburl': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? _dbUrlController.text : '',
-      'dbuser': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? _dbUserController.text : '',
-      'dbpassword': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? _dbPasswordController.text : '',
-      'dbport': ['mysql', 'mssql', 'pgsql'].contains(_dbType) ? int.tryParse(_dbPortController.text) ?? 0 : 0,
-      'dbconnectionstring': _dbType == 'mongodb' ? _dbConnectionStringController.text : '',
+      'dbname': _dbNameController.text,
+      'dburl':  _dbUrlController.text,
+      'dbuser': _dbUserController.text,
+      'dbpassword': _dbPasswordController.text,
+      'dbport': int.tryParse(_dbPortController.text) ?? 0,
+      'ssl': _sslType,
+      'cluster': _dbType == 'mongodb' ? _clusterController.text : '',
       'dbclass': _dbType,
     };
 
@@ -99,10 +102,62 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(labelText: 'Port'),
                 ),
+                DropdownButtonFormField<String>(
+                  value: _sslType,
+                  items: sslTypes.map((type) {
+                    return DropdownMenuItem<String>(
+                      value: type,
+                      child: Text(type),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _sslType = value!;
+                    });
+                  },
+                  decoration: const InputDecoration(labelText: 'Require SSL'),
+                ),
               ] else if (_dbType == 'mongodb') ...[
                 TextFormField(
-                  controller: _dbConnectionStringController,
-                  decoration: const InputDecoration(labelText: 'Connection String'),
+                  controller: _dbNameController,
+                  decoration: const InputDecoration(labelText: 'Database Name'),
+                ),
+                TextFormField(
+                  controller: _clusterController,
+                  decoration: const InputDecoration(labelText: 'Cluster'),
+                ),
+                TextFormField(
+                  controller: _dbUrlController,
+                  decoration: const InputDecoration(labelText: 'URL'),
+                ),
+                TextFormField(
+                  controller: _dbUserController,
+                  decoration: const InputDecoration(labelText: 'User'),
+                ),
+                TextFormField(
+                  controller: _dbPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                ),
+                TextFormField(
+                  controller: _dbPortController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Port'),
+                ),
+                DropdownButtonFormField<String>(
+                  value: _sslType,
+                  items: sslTypes.map((type) {
+                    return DropdownMenuItem<String>(
+                      value: type,
+                      child: Text(type),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _sslType = value!;
+                    });
+                  },
+                  decoration: const InputDecoration(labelText: 'Require SSL'),
                 ),
               ],
               const SizedBox(height: 16),
