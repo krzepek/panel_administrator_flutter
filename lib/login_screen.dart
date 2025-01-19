@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'token_service.dart';
+import 'session_manager.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -13,19 +15,27 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _auth = FirebaseAuth.instance;
 
-  void loginUser() async {
+  Future<void> loginUser(String email, String password) async {
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
       );
-      Navigator.pushReplacementNamed(context, '/main');
+      final userId = userCredential.user?.uid ?? '';
+      await TokenService().generateToken(userId);
+      if(mounted) {
+        SessionManager().startSession(context);
+        Navigator.pushReplacementNamed(context, '/main');
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: $e')),
-      );
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +61,11 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: loginUser,
+                onPressed: () {
+                  final email = _emailController.text.trim();
+                  final password = _passwordController.text.trim();
+                  loginUser(email, password);
+                },
                 child: const Text('Login'),
               ),
               TextButton(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'database_service.dart'; // Adjust the import based on your project structure
+import 'database_service.dart';
+import 'session_manager.dart'; // Adjust the import based on your project structure
 
 class QueryScreen extends StatefulWidget {
   final Map<String, dynamic> config;
@@ -16,27 +17,34 @@ class _QueryScreenState extends State<QueryScreen> {
   bool _isLoading = false;
 
   Future<void> _sendQuery() async {
-    setState(() {
-      _isLoading = true;
-      _result = null;
-    });
-
+    if(mounted) {
+      setState(() {
+        _isLoading = true;
+        _result = null;
+      });
+    }
     try {
       final result = await _executeQuery(
         widget.config,
         _queryController.text.trim(),
       );
-      setState(() {
-        _result = result;
-      });
+      if(mounted) {
+        setState(() {
+          _result = result;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _result = 'Error: $e';
-      });
+      if(mounted) {
+        setState(() {
+          _result = 'Error: $e';
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if(mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -45,13 +53,13 @@ class _QueryScreenState extends State<QueryScreen> {
 
     switch (config['dbclass']) {
       case 'pgsql':
-        return await dbService.executePostgreSQLQuery(config, query);
+        return await dbService.executePostgreSQLQuery(config, query, context);
       case 'mysql':
-        return await dbService.executeMySQLQuery(config, query);
+        return await dbService.executeMySQLQuery(config, query, context);
       case 'mssql':
-        return await dbService.executeMSSQLQuery(config, query);
+        return await dbService.executeMSSQLQuery(config, query, context);
       case 'mongodb':
-        return await dbService.executeMongoDBQuery(config, query);
+        return await dbService.executeMongoDBQuery(config, query, context);
       default:
         throw Exception('Unsupported database type: ${config['dbclass']}');
     }
@@ -75,7 +83,14 @@ class _QueryScreenState extends State<QueryScreen> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _isLoading ? null : _sendQuery,
+              onPressed: _isLoading ? null : () async {
+                  try{
+                  SessionManager().resetSession(context);
+                  _sendQuery;
+                  } catch (e) {
+                    print("Moze tutaj $e");
+                  }
+                },
               child: _isLoading
                   ? const CircularProgressIndicator()
                   : Text(widget.config['dbclass'] == 'mongodb' ? 'Send Command' : 'Send Query'),

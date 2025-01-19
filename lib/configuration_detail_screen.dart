@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:panel_administrator_flutter/session_manager.dart';
 import 'database_service.dart';
 
 class ConfigurationDetailScreen extends StatefulWidget {
@@ -55,9 +56,11 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
   }
 
   void _toggleEditMode() {
-    setState(() {
-      _isEditing = !_isEditing;
-    });
+    if(mounted) {
+      setState(() {
+        _isEditing = !_isEditing;
+      });
+    }
   }
 
   void _saveConfiguration() async {
@@ -76,7 +79,7 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
     };
 
     try {
-      await _databaseService.updateConfiguration(configId.toString(), userId, updatedConfig);
+      await _databaseService.updateConfiguration(configId.toString(), userId, updatedConfig, context);
       if(mounted) {
         Navigator.pop(context, true);
       }
@@ -117,9 +120,11 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
                 }).toList(),
                 onChanged: _isEditing
                     ? (value) {
-                        setState(() {
-                          _dbType = value!;
-                        });
+                        if(mounted) {
+                          setState(() {
+                            _dbType = value!;
+                          });
+                        }
                       }
                     : null,
                 decoration: const InputDecoration(labelText: 'Database Type'),
@@ -162,9 +167,11 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
                   }).toList(),
                   onChanged: _isEditing
                       ? (value) {
-                          setState(() {
-                            _sslType = value!;
-                          });
+                          if(mounted) {
+                            setState(() {
+                              _sslType = value!;
+                            });
+                          }
                         }
                       : null,
                   decoration: const InputDecoration(labelText: 'Require SSL'),
@@ -212,9 +219,11 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
                   }).toList(),
                   onChanged: _isEditing
                       ? (value) {
-                          setState(() {
-                            _sslType = value!;
-                          });
+                          if(mounted) {
+                            setState(() {
+                              _sslType = value!;
+                            });
+                          }
                         }
                       : null,
                   decoration: const InputDecoration(labelText: 'Require SSL'),
@@ -223,16 +232,18 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
               const SizedBox(height: 16),
               if (_isEditing)
                 ElevatedButton(
-                  onPressed: _saveConfiguration,
+                  onPressed: () async {
+                    SessionManager().resetSession(context);
+                    _saveConfiguration;
+                  },
                   child: const Text('Save'),
                 ),
               ElevatedButton(
                 onPressed: widget.status == 'Online'
-                    ? () => Navigator.pushNamed(
-                          context,
-                          '/query-screen',
-                          arguments: widget.config,
-                        )
+                    ? () async {
+                        SessionManager().resetSession(context);
+                        Navigator.pushNamed(context, '/query-screen', arguments: widget.config,);
+                       }
                     : null,
                 child: const Text('Send Query'),
               ),

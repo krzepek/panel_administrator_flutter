@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'session_manager.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({Key? key}) : super(key: key);
@@ -14,6 +15,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   Future<void> _changeEmail(BuildContext context) async {
     String? email;
     String? confirmEmail;
+
+    SessionManager().resetSession(context);
     await showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -37,11 +40,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () async {
+                    SessionManager().resetSession(context);
+                    Navigator.of(context).pop();
+                  },
                   child: const Text('Cancel'),
                 ),
                 TextButton(
                   onPressed: () async {
+                    SessionManager().resetSession(context);
                     if (email == null || confirmEmail == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -61,18 +68,24 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     try {
                       await _auth.currentUser
                           ?.updateEmail(email!);
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Email address updated successfully.'),
-                        ),
-                      );
+                      if(context.mounted) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Email address updated successfully.'),
+                          ),
+                        );
+                      }
                       await _auth.signOut();
-                      Navigator.pushReplacementNamed(context, '/login');
+                      if(context.mounted) {
+                        Navigator.pushReplacementNamed(context, '/login');
+                      }
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
-                      );
+                      if(context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
                     }
                   },
                   child: const Text('Save'),
@@ -89,6 +102,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   Future<void> _changePassword(BuildContext context) async {
     String? password;
     String? confirmPassword;
+    
+    SessionManager().resetSession(context);
     await showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -114,11 +129,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () async {
+                    SessionManager().resetSession(context);
+                    Navigator.of(context).pop();
+                  },
                   child: const Text('Cancel'),
                 ),
                 TextButton(
                   onPressed: () async {
+                    SessionManager().resetSession(context);
                     if (password == null || confirmPassword == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -138,18 +157,24 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     try {
                       await _auth.currentUser
                           ?.updatePassword(password!);
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Password updated successfully.'),
-                        ),
-                      );
+                      if(context.mounted) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Password updated successfully.'),
+                          ),
+                        );
+                      }
                       await _auth.signOut();
-                      Navigator.pushReplacementNamed(context, '/login');
+                      if(context.mounted) {
+                        Navigator.pushReplacementNamed(context, '/login');
+                      }
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
-                      );
+                      if(context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
                     }
                   },
                   child: const Text('Save'),
@@ -164,6 +189,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   Future<void> _deleteAccount(BuildContext context) async {
     String? password;
+
+    SessionManager().resetSession(context);
     final confirmation = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -173,11 +200,17 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               'Are you sure you want to delete your account? All configurations will also be deleted.'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () async {
+                SessionManager().resetSession(context);
+                Navigator.of(context).pop(false);
+              },
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () async {
+                SessionManager().resetSession(context);
+                Navigator.of(context).pop(true);
+              },
               child: const Text('Delete'),
             ),
           ],
@@ -207,11 +240,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () async{ 
+                      SessionManager().resetSession(context);
+                      Navigator.of(context).pop();
+                    },
                   child: const Text('Cancel'),
                 ),
                 TextButton(
                   onPressed: () async {
+                    SessionManager().resetSession(context);
                     if (password == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -226,17 +263,22 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                           email: user?.email ?? '', password: password!);
                       await user?.reauthenticateWithCredential(credential);
                       await user?.delete();
-                      Navigator.of(context).pop();
-                      Navigator.pushReplacementNamed(context, '/login');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Account deleted successfully.'),
-                        ),
-                      );
+                      SessionManager().stopSession();
+                      if(context.mounted) {
+                        Navigator.of(context).pop();
+                        Navigator.pushReplacementNamed(context, '/login');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Account deleted successfully.'),
+                          ),
+                        );
+                      }
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
-                      );
+                      if(context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
                     }
                   },
                   child: const Text('I\'m Sure'),

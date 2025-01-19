@@ -1,10 +1,12 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:mysql1/mysql1.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:postgres/postgres.dart';
 import 'config.dart';
+import 'token_service.dart';
 
 class DatabaseService {
   PostgreSQLConnection _connection = PostgreSQLConnection(
@@ -16,12 +18,15 @@ class DatabaseService {
     timeoutInSeconds: 10,
   );
 
-  Future<void> initialize() async {
+  final TokenService _tokenService = TokenService();
+
+  Future<void> initialize(BuildContext context) async {
     try{
+      await ensureTokenIsValid(context);
       await ensureConnectionOpen();
       await _createTableIfNotExists();
     } catch (e) {
-      throw Exception(e);
+      throw '$e';
     }
   }
 
@@ -55,12 +60,10 @@ class DatabaseService {
 
   Future<void> _recreateConnection() async {
     try {
-      // Close the current connection if necessary
       if (!_connection.isClosed) {
         await _connection.close();
       }
 
-      // Create a new instance of PostgreSQLConnection
       _connection = PostgreSQLConnection(
         dbHost,
         dbPort,
@@ -72,14 +75,28 @@ class DatabaseService {
 
       await _connection.open();
     } catch (e) {
-      print("Error recreating connection: $e");
-      throw Exception("Failed to recreate the connection.");
+      throw "Failed to recreate the connection.";
     }
   }
 
+  Future<void> ensureTokenIsValid(BuildContext context) async {
+  final isValid = await _tokenService.isTokenValid();
+  if (!isValid) {
+    if(context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid or expired token. Please log in again.')),
+      );
+    }
+    await _tokenService.clearToken();
+    if(context.mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+}
 
 
-  Future<List<Map<String, dynamic>>> fetchConfigurations(String firebaseUserId) async {
+  Future<List<Map<String, dynamic>>> fetchConfigurations(String firebaseUserId, BuildContext context) async {
+    await ensureTokenIsValid(context);
     await ensureConnectionOpen();
     final results = await _connection.mappedResultsQuery(
       'SELECT * FROM configurations WHERE firebase_user_id = @firebaseUserId',
@@ -88,7 +105,8 @@ class DatabaseService {
     return results.map((row) => row['configurations']!).toList();
   }
 
-  Future<void> addConfiguration(String firebaseUserId, Map<String, dynamic> config) async {
+  Future<void> addConfiguration(String firebaseUserId, Map<String, dynamic> config, BuildContext context) async {
+    await ensureTokenIsValid(context);
     await ensureConnectionOpen();
     await _connection.query(
       'INSERT INTO configurations (firebase_user_id, configname, dbname, dburl, dbuser, dbpassword, dbport, dbclass, ssl, cluster) VALUES (@firebaseUserId, @configname, @dbname, @dburl, @dbuser, @dbpassword, @dbport, @dbclass, @ssl, @cluster)',
@@ -96,7 +114,8 @@ class DatabaseService {
     );
   }
 
-  Future<void> updateConfiguration(String id, String firebaseUserId, Map<String, dynamic> updatedConfig) async {
+  Future<void> updateConfiguration(String id, String firebaseUserId, Map<String, dynamic> updatedConfig, BuildContext context) async {
+    await ensureTokenIsValid(context);
     await ensureConnectionOpen();
     await _connection.query(
       'UPDATE configurations SET configname = @configname, dbname = @dbname, dburl = @dburl, dbuser = @dbuser, dbpassword = @dbpassword, dbport = @dbport, dbclass = @dbclass, ssl = @ssl, cluster = @cluster WHERE id = @id AND firebase_user_id = @firebaseUserId',
@@ -104,7 +123,8 @@ class DatabaseService {
     );
   }
 
-  Future<void> deleteConfiguration(String id, String firebaseUserId) async {
+  Future<void> deleteConfiguration(String id, String firebaseUserId, BuildContext context) async {
+    await ensureTokenIsValid(context);
     await ensureConnectionOpen();
     await _connection.query(
       'DELETE FROM configurations WHERE id = @id AND firebase_user_id = @firebaseUserId',
@@ -112,7 +132,7 @@ class DatabaseService {
     );
   }
 
-  Future<Map<String, dynamic>> fetchDatabaseInfo(Map<String, dynamic> config) async {
+  Future<Map<String, dynamic>> fetchDatabaseInfo(Map<String, dynamic> config, BuildContext context) async {
     switch (config['dbclass']) {
       case 'pgsql':
         return await _fetchPostgreSQLInfo(
@@ -122,6 +142,7 @@ class DatabaseService {
           config['dbpassword'],
           config['dbname'],
           config['ssl'],
+          context
         );
       case 'mysql':
         return await _fetchMySQLInfo(
@@ -131,6 +152,7 @@ class DatabaseService {
           config['dbpassword'],
           config['dbname'],
           config['ssl'],
+          context
         );
       case 'mssql':
         return await _fetchMsSQLInfo(
@@ -140,6 +162,7 @@ class DatabaseService {
           config['dbpassword'],
           config['dbname'],
           config['ssl'],
+          context
         );
       case 'mongodb':
         return await _fetchMongoDBInfo(
@@ -150,6 +173,7 @@ class DatabaseService {
           config['dbname'],
           config['ssl'],
           config['cluster'],
+          context
         );
       default:
         return {'status': 'Unknown', 'size': '0'};
@@ -157,8 +181,9 @@ class DatabaseService {
   }
 
   Future<Map<String, dynamic>> _fetchPostgreSQLInfo(
-      String host, int port, String user, String password, String dbName, String ssl) async {
+      String host, int port, String user, String password, String dbName, String ssl, BuildContext context) async {
     try {
+      await ensureTokenIsValid(context);
       final connection = PostgreSQLConnection(
         host,
         port,
@@ -177,14 +202,14 @@ class DatabaseService {
       await connection.close();
       return {'status': 'Online', 'size': results.first[0].toString()};
     } catch (e) {
-      print('Error fetching PostgreSQL info: $e');
       return {'status': 'Error', 'size': '0'};
     }
   }
 
   Future<Map<String, dynamic>> _fetchMySQLInfo(
-      String host, int port, String user, String password, String dbName, String ssl) async {
+      String host, int port, String user, String password, String dbName, String ssl, BuildContext context) async {
     try {
+      await ensureTokenIsValid(context);
       final settings = ConnectionSettings(
         host: host,
         port: port,
@@ -208,14 +233,14 @@ class DatabaseService {
         await conn.close();
       }
     } catch (e) {
-      print('Error fetching MySQL info: $e');
       return {'status': 'Error', 'size': '0'};
     }
   }
 
   Future<Map<String, dynamic>> _fetchMsSQLInfo(
-      String host, int port, String user, String password, String dbName, String ssl) async {
+      String host, int port, String user, String password, String dbName, String ssl, BuildContext context) async {
     try {
+      await ensureTokenIsValid(context);
       final mssqlConnection = MssqlConnection.getInstance();
       final connected = await mssqlConnection.connect(
         ip: host,
@@ -249,13 +274,16 @@ class DatabaseService {
     }
   }
 
-  Future<Map<String, dynamic>> _fetchMongoDBInfo(String host, int port, String user, String password, String dbName, String ssl, String cluster) async {
+  Future<Map<String, dynamic>> _fetchMongoDBInfo(String host, int port, String user, String password, String dbName, String ssl, String cluster, BuildContext context) async {
     try {
+      await ensureTokenIsValid(context);
       String connectionString = 'mongodb+srv://$user:$password@$cluster.$host:$port/$dbName?ssl=${ssl == 'yes' ? 'true' : 'false'}';
+      
       var db = await Db.create(connectionString);
       await db.open(writeConcern: WriteConcern(wtimeout: 5));
       final stats = await db.runCommand({'dbStats': 1});
       await db.close();
+
       if(stats['dataSize'] == null) {
         return {'status': 'Online', 'size': '0'};
       } else {
@@ -263,22 +291,22 @@ class DatabaseService {
         return {'status': 'Online', 'size': size.toStringAsFixed(2)};
       }
     } catch (e) {
-      print('Error fetching MongoDB info: $e');
       return {'status': 'Error', 'size': '0'};
     }
   }
 
-  Future<String> executePostgreSQLQuery(Map<String, dynamic> config, String query) async {
-    final connection = PostgreSQLConnection(
-      config['dburl'],
-      config['dbport'],
-      config['dbname'],
-      username: config['dbuser'],
-      password: config['dbpassword'],
-      useSSL: config['ssl'] == 'yes',
-    );
-
+  Future<String> executePostgreSQLQuery(Map<String, dynamic> config, String query, BuildContext context) async {
     try {
+      await ensureTokenIsValid(context);
+      final connection = PostgreSQLConnection(
+        config['dburl'],
+        config['dbport'],
+        config['dbname'],
+        username: config['dbuser'],
+        password: config['dbpassword'],
+        useSSL: config['ssl'] == 'yes',
+      );
+
       await connection.open();
       final results = await connection.query(query);
       await connection.close();
@@ -292,16 +320,17 @@ class DatabaseService {
     }
   }
 
-  Future<String> executeMySQLQuery(Map<String, dynamic> config, String query) async {
-    final settings = ConnectionSettings(
-      host: config['dburl'],
-      port: config['dbport'],
-      user: config['dbuser'],
-      password: config['dbpassword'],
-      db: config['dbname'],
-    );
-
+  Future<String> executeMySQLQuery(Map<String, dynamic> config, String query, BuildContext context) async {
     try {
+      await ensureTokenIsValid(context);
+      final settings = ConnectionSettings(
+        host: config['dburl'],
+        port: config['dbport'],
+        user: config['dbuser'],
+        password: config['dbpassword'],
+        db: config['dbname'],
+      );
+
       final conn = await MySqlConnection.connect(settings);
       await Future.delayed(Duration(seconds: 1));
       final results = await conn.query(query);
@@ -316,10 +345,11 @@ class DatabaseService {
     }
   }
 
-  Future<String> executeMSSQLQuery(Map<String, dynamic> config, String query) async {
-    final mssqlConnection = MssqlConnection.getInstance();
-
+  Future<String> executeMSSQLQuery(Map<String, dynamic> config, String query, BuildContext context) async {
     try {
+      await ensureTokenIsValid(context);
+      final mssqlConnection = MssqlConnection.getInstance();
+      
       final connected = await mssqlConnection.connect(
         ip: config['dburl'],
         port: config['dbport'].toString(),
@@ -343,10 +373,11 @@ class DatabaseService {
     }
   }
 
-  Future<String> executeMongoDBQuery(Map<String, dynamic> config, String query) async {
+  Future<String> executeMongoDBQuery(Map<String, dynamic> config, String query, BuildContext context) async {
     String connectionString = 'mongodb+srv://${config["dbuser"]}:${config["dbpassword"]}@${config["cluster"]}.${config["dburl"]}:${config["dbport"]}/${config["dbname"]}?ssl=${config["ssl"] == 'yes' ? 'true' : 'false'}';
     var db = await Db.create(connectionString);
     try {
+      await ensureTokenIsValid(context);
       await db.open();
 
       final collectionName = query.split('.')[0].trim();
@@ -388,13 +419,12 @@ class DatabaseService {
 
       await db.close();
 
-      // Process the result into a user-friendly string
       if (result is List) {
-        return jsonEncode(result); // Encode lists (like find results) to JSON
+        return jsonEncode(result);
       } else if (result is WriteResult) {
         return 'Matched: ${result.nMatched}, Modified: ${result.nModified}, Inserted: ${result.nInserted}';
       } else {
-        return result.toString(); // Default fallback for other types
+        return result.toString();
       }
     } catch (e) {
       await db.close();

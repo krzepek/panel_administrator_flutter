@@ -1,7 +1,7 @@
-// Updated add_configuration_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'database_service.dart';
+import 'session_manager.dart';
 
 class AddConfigurationScreen extends StatefulWidget {
   const AddConfigurationScreen({Key? key}) : super(key: key);
@@ -41,7 +41,8 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
     };
 
     try {
-      await _databaseService.addConfiguration(userId, newConfig);
+      SessionManager().resetSession(context);
+      await _databaseService.addConfiguration(userId, newConfig, context);
       if(mounted) {
         Navigator.pop(context, true);
       }
@@ -73,9 +74,11 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
                   );
                 }).toList(),
                 onChanged: (value) {
-                  setState(() {
-                    _dbType = value!;
-                  });
+                  if(mounted) {
+                    setState(() {
+                      _dbType = value!;
+                    });
+                  }
                 },
                 decoration: const InputDecoration(labelText: 'Database Type'),
               ),
@@ -111,9 +114,11 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
                     );
                   }).toList(),
                   onChanged: (value) {
-                    setState(() {
-                      _sslType = value!;
-                    });
+                    if(mounted) {
+                      setState(() {
+                        _sslType = value!;
+                      });
+                    }
                   },
                   decoration: const InputDecoration(labelText: 'Require SSL'),
                 ),
@@ -153,9 +158,11 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
                     );
                   }).toList(),
                   onChanged: (value) {
-                    setState(() {
-                      _sslType = value!;
-                    });
+                    if(mounted) {
+                      setState(() {
+                        _sslType = value!;
+                      });
+                    }
                   },
                   decoration: const InputDecoration(labelText: 'Require SSL'),
                 ),

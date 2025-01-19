@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'database_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'token_service.dart';
+import 'session_manager.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -29,44 +31,63 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    SessionManager().stopSession();
     super.dispose();
   }
 
   Future<void> _initializeDatabaseAndFetchConfigurations() async {
     try{
-      await _databaseService.initialize();
-      await _fetchConfigurations();
-      await _refreshDatabaseInfo();
-      await _startPeriodicRefresh();
+      final isValid = await TokenService().isTokenValid();
+      if(mounted) {
+        if (!isValid) {
+          await TokenService().clearToken();
+          if(mounted) {
+            
+          }
+          return;
+        }
+
+        await _databaseService.initialize(context);
+        await _fetchConfigurations();
+        await _refreshDatabaseInfo();
+        await _startPeriodicRefresh();
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _configurations = [];
-        _errorMessage = '$e';
-      });
+      if(mounted) {
+        setState(() {
+          _isLoading = false;
+          _configurations = [];
+          _errorMessage = '$e';
+        });
+      }
     }
   }
 
   Future<void> _fetchConfigurations() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
+    if(mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
     try {
       await _databaseService.ensureConnectionOpen();
       final userId = _auth.currentUser?.uid ?? '';
-      final configurations = await _databaseService.fetchConfigurations(userId);
-      setState(() {
-        _configurations = configurations;
-        _isLoading = false;
-      });
+      if(mounted) {
+        final configurations = await _databaseService.fetchConfigurations(userId, context);
+        setState(() {
+          _configurations = configurations;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _configurations = [];
-        _errorMessage = 'Error fetching configurations: $e';
-      });
+      if(mounted) {
+        setState(() {
+          _isLoading = false;
+          _configurations = [];
+          _errorMessage = 'Error fetching configurations: $e';
+        });
+      }
     }
   }
 
@@ -88,22 +109,28 @@ class _MainScreenState extends State<MainScreen> {
       for (var config in _configurations) {
         final configId = config['id'].toString();
         try {
-          final dbInfo = await _databaseService.fetchDatabaseInfo(config);
-          updatedInfo[configId] = dbInfo;
+          if(mounted) {
+            final dbInfo = await _databaseService.fetchDatabaseInfo(config, context);
+            updatedInfo[configId] = dbInfo;
+          }
         } catch (e) {
           updatedInfo[configId] = {'status': 'Error', 'size': '0'};
         }
       }
 
-      setState(() {
-        _dynamicInfo = updatedInfo;
-      });
+      if (mounted) {
+        setState(() {
+          _dynamicInfo = updatedInfo;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _configurations = [];
-        _dynamicInfo = {};
-        _errorMessage = 'Lost connection to the database. Please check your connection.';
-      });
+      if (mounted) {
+        setState(() {
+          _configurations = [];
+          _dynamicInfo = {};
+          _errorMessage = 'Lost connection to the database. Please check your connection.';
+        });
+      }
     }
   }
 
@@ -131,11 +158,14 @@ class _MainScreenState extends State<MainScreen> {
 
 
   Future<void> _deleteConfiguration(String id) async {
+    SessionManager().resetSession(context);
     final shouldDelete = await _showDeleteConfirmationDialog();
     if (shouldDelete == true) {
       try {
         final userId = _auth.currentUser?.uid ?? '';
-        await _databaseService.deleteConfiguration(id, userId);
+        if(mounted) {
+        await _databaseService.deleteConfiguration(id, userId, context);
+        }
         await _fetchConfigurations();
       } catch (e) {
         print('Error deleting configuration: $e');
@@ -145,6 +175,7 @@ class _MainScreenState extends State<MainScreen> {
 
 
   void _navigateToDetails(Map<String, dynamic> config, dynamic status) {
+    SessionManager().resetSession(context);
     _refreshTimer?.cancel();
     Navigator.pushNamed(
       context,
@@ -160,6 +191,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _navigateToAddConfiguration() {
+    SessionManager().resetSession(context);
     _refreshTimer?.cancel();
     Navigator.pushNamed(context, '/add-configuration').then((_) {
         _fetchConfigurations().then((_) => _refreshDatabaseInfo());
@@ -168,8 +200,12 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _logout() async {
+    SessionManager().stopSession();
+    await TokenService().clearToken();
     await _auth.signOut();
-    Navigator.pushReplacementNamed(context, '/login');
+    if(mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   @override
@@ -187,6 +223,7 @@ class _MainScreenState extends State<MainScreen> {
               leading: const Icon(Icons.settings),
               title: const Text('Account Settings'),
               onTap: () {
+                SessionManager().resetSession(context);
                 Navigator.of(context).pop();
                 Navigator.pushNamed(context, '/account-settings');
               },
@@ -201,6 +238,7 @@ class _MainScreenState extends State<MainScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          SessionManager().resetSession(context);
           await _fetchConfigurations();
           await _refreshDatabaseInfo();
         },

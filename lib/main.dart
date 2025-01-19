@@ -9,6 +9,10 @@ import 'configuration_detail_screen.dart';
 import 'account_settings_screen.dart';
 import 'query_screen.dart';
 import 'forgot_password_screen.dart';
+import 'route_observer.dart';
+
+final RouteObserver<PageRoute<dynamic>> routeObserver = NavigationObserver();
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +27,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
+      navigatorObservers: [routeObserver],
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
