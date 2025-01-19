@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'session_manager.dart';
 import 'token_service.dart';
+import 'password_field.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -66,15 +67,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email'),
             ),
-            TextFormField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password'),
+            PasswordField(
+                  controller: _passwordController,
+                  label: 'Password',
+                  enabled: true,
             ),
-            TextFormField(
-              controller: _repeatPasswordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Repeat Password'),
+            PasswordField(
+                  controller: _repeatPasswordController,
+                  label: 'Repeat Password',
+                  enabled: true,
             ),
             const SizedBox(height: 16),
             ElevatedButton(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'database_service.dart';
 import 'session_manager.dart';
+import 'password_field.dart';
 
 class AddConfigurationScreen extends StatefulWidget {
   const AddConfigurationScreen({Key? key}) : super(key: key);
@@ -95,10 +96,10 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
                   controller: _dbUserController,
                   decoration: const InputDecoration(labelText: 'User'),
                 ),
-                TextFormField(
+                PasswordField(
                   controller: _dbPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  label: 'Password',
+                  enabled: true,
                 ),
                 TextFormField(
                   controller: _dbPortController,
@@ -139,10 +140,10 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
                   controller: _dbUserController,
                   decoration: const InputDecoration(labelText: 'User'),
                 ),
-                TextFormField(
+                PasswordField(
                   controller: _dbPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  label: 'Password',
+                  enabled: true,
                 ),
                 TextFormField(
                   controller: _dbPortController,

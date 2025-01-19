@@ -11,6 +11,25 @@ class AccountSettingsScreen extends StatefulWidget {
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final _auth = FirebaseAuth.instance;
+  bool _obscureTextNew = true;
+  bool _obscureTextConfirm = true;
+  bool _obscureTextDelete = true;
+
+  void _toggleVisibility(String field) {
+    if(mounted) {
+      setState(() {
+        switch(field) {
+          case "new": 
+            _obscureTextNew = !_obscureTextNew;
+          case "confirm": 
+            _obscureTextConfirm = !_obscureTextConfirm;
+          case "delete": 
+            _obscureTextDelete = !_obscureTextDelete;
+          default:
+        }
+      });
+    }
+  }
 
   Future<void> _changeEmail(BuildContext context) async {
     String? email;
@@ -115,14 +134,29 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: 'New Password'),
+                    obscureText: _obscureTextNew,
+                    decoration: InputDecoration(
+                      labelText: "New password",
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureTextNew ? Icons.visibility_off : Icons.visibility,
+                        ),
+                        onPressed: () => _toggleVisibility("new"),
+                      ),
+                    ),
                     onChanged: (value) => password = value,
                   ),
                   TextField(
-                    obscureText: true,
-                    decoration:
-                        const InputDecoration(labelText: 'Confirm Password'),
+                    obscureText: _obscureTextConfirm,
+                    decoration: InputDecoration(
+                      labelText: "Confirm password",
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureTextConfirm ? Icons.visibility_off : Icons.visibility,
+                        ),
+                        onPressed: () => _toggleVisibility("confirm"),
+                      ),
+                    ),
                     onChanged: (value) => confirmPassword = value,
                   ),
                 ],
@@ -232,8 +266,16 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   const Text(
                       'Enter your password to confirm account deletion.'),
                   TextField(
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: 'Password'),
+                    obscureText: _obscureTextDelete,
+                    decoration: InputDecoration(
+                      labelText: "Password",
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureTextDelete ? Icons.visibility_off : Icons.visibility,
+                        ),
+                        onPressed: () => _toggleVisibility("delete"),
+                      ),
+                    ),
                     onChanged: (value) => password = value,
                   ),
                 ],

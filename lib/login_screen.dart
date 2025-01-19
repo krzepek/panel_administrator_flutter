@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'token_service.dart';
 import 'session_manager.dart';
+import 'password_field.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -54,10 +55,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
               ),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password'),
+              PasswordField(
+                  controller: _passwordController,
+                  label: 'Password',
+                  enabled: true,
               ),
               const SizedBox(height: 16),
               ElevatedButton(

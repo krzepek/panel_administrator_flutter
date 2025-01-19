@@ -7,6 +7,7 @@ import 'package:mssql_connection/mssql_connection.dart';
 import 'package:postgres/postgres.dart';
 import 'config.dart';
 import 'token_service.dart';
+import 'encryption_util.dart';
 
 class DatabaseService {
   PostgreSQLConnection _connection = PostgreSQLConnection(
@@ -102,12 +103,19 @@ class DatabaseService {
       'SELECT * FROM configurations WHERE firebase_user_id = @firebaseUserId',
       substitutionValues: {'firebaseUserId': firebaseUserId},
     );
-    return results.map((row) => row['configurations']!).toList();
+    final configurations = results.map((row) {
+      final config = row['configurations']!;
+      config['dbpassword'] = EncryptionUtil.decryptPassword(config['dbpassword']);
+      return config;
+    }).toList();
+
+    return configurations;
   }
 
   Future<void> addConfiguration(String firebaseUserId, Map<String, dynamic> config, BuildContext context) async {
     await ensureTokenIsValid(context);
     await ensureConnectionOpen();
+    config['dbpassword'] = EncryptionUtil.encryptPassword(config['dbpassword']);
     await _connection.query(
       'INSERT INTO configurations (firebase_user_id, configname, dbname, dburl, dbuser, dbpassword, dbport, dbclass, ssl, cluster) VALUES (@firebaseUserId, @configname, @dbname, @dburl, @dbuser, @dbpassword, @dbport, @dbclass, @ssl, @cluster)',
       substitutionValues: {'firebaseUserId': firebaseUserId, ...config},
@@ -117,6 +125,7 @@ class DatabaseService {
   Future<void> updateConfiguration(String id, String firebaseUserId, Map<String, dynamic> updatedConfig, BuildContext context) async {
     await ensureTokenIsValid(context);
     await ensureConnectionOpen();
+    updatedConfig['dbpassword'] = EncryptionUtil.encryptPassword(updatedConfig['dbpassword']);
     await _connection.query(
       'UPDATE configurations SET configname = @configname, dbname = @dbname, dburl = @dburl, dbuser = @dbuser, dbpassword = @dbpassword, dbport = @dbport, dbclass = @dbclass, ssl = @ssl, cluster = @cluster WHERE id = @id AND firebase_user_id = @firebaseUserId',
       substitutionValues: {'id': id, 'firebaseUserId': firebaseUserId, ...updatedConfig},

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:panel_administrator_flutter/session_manager.dart';
 import 'database_service.dart';
+import 'password_field.dart';
 
 class ConfigurationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> config;
@@ -145,10 +146,9 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
                   decoration: const InputDecoration(labelText: 'User'),
                   enabled: _isEditing,
                 ),
-                TextFormField(
+                PasswordField(
                   controller: _dbPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  label: 'Password',
                   enabled: _isEditing,
                 ),
                 TextFormField(
@@ -197,10 +197,9 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
                   decoration: const InputDecoration(labelText: 'User'),
                   enabled: _isEditing,
                 ),
-                TextFormField(
+                PasswordField(
                   controller: _dbPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  label: 'Password',
                   enabled: _isEditing,
                 ),
                 TextFormField(
