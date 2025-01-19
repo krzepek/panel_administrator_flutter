@@ -1,23 +1,28 @@
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:mysql1/mysql1.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:postgres/postgres.dart';
+import 'config.dart';
 
 class DatabaseService {
-  final PostgreSQLConnection _connection = PostgreSQLConnection(
-    '192.168.12.63',
-    5432,
-    'panel_administratora',
-    username: 'admin',
-    password: 'paneladministratora2025!',
+  PostgreSQLConnection _connection = PostgreSQLConnection(
+    dbHost,
+    dbPort,
+    dbName,
+    username: dbUsername,
+    password: dbPassword,
+    timeoutInSeconds: 10,
   );
 
   Future<void> initialize() async {
-    await _connection.open();
-    await _createTableIfNotExists();
+    try{
+      await ensureConnectionOpen();
+      await _createTableIfNotExists();
+    } catch (e) {
+      throw Exception(e);
+    }
   }
 
   Future<void> _createTableIfNotExists() async {
@@ -39,10 +44,40 @@ class DatabaseService {
   }
 
   Future<void> ensureConnectionOpen() async {
-    if (_connection.isClosed) {
-      await _connection.open();
+    try {
+      if (_connection.isClosed) {
+        await _connection.open();
+      }
+    } catch (e) {
+      await _recreateConnection();
     }
   }
+
+  Future<void> _recreateConnection() async {
+    try {
+      // Close the current connection if necessary
+      if (!_connection.isClosed) {
+        await _connection.close();
+      }
+
+      // Create a new instance of PostgreSQLConnection
+      _connection = PostgreSQLConnection(
+        dbHost,
+        dbPort,
+        dbName,
+        username: dbUsername,
+        password: dbPassword,
+        timeoutInSeconds: 10,
+      );
+
+      await _connection.open();
+    } catch (e) {
+      print("Error recreating connection: $e");
+      throw Exception("Failed to recreate the connection.");
+    }
+  }
+
+
 
   Future<List<Map<String, dynamic>>> fetchConfigurations(String firebaseUserId) async {
     await ensureConnectionOpen();
@@ -230,6 +265,140 @@ class DatabaseService {
     } catch (e) {
       print('Error fetching MongoDB info: $e');
       return {'status': 'Error', 'size': '0'};
+    }
+  }
+
+  Future<String> executePostgreSQLQuery(Map<String, dynamic> config, String query) async {
+    final connection = PostgreSQLConnection(
+      config['dburl'],
+      config['dbport'],
+      config['dbname'],
+      username: config['dbuser'],
+      password: config['dbpassword'],
+      useSSL: config['ssl'] == 'yes',
+    );
+
+    try {
+      await connection.open();
+      final results = await connection.query(query);
+      await connection.close();
+      if (results.isEmpty) {
+        return 'Query executed successfully.';
+      } else {
+        return results.map((row) => row.toString()).join('\n');
+      }
+    } catch (e) {
+      return 'Error: $e';
+    }
+  }
+
+  Future<String> executeMySQLQuery(Map<String, dynamic> config, String query) async {
+    final settings = ConnectionSettings(
+      host: config['dburl'],
+      port: config['dbport'],
+      user: config['dbuser'],
+      password: config['dbpassword'],
+      db: config['dbname'],
+    );
+
+    try {
+      final conn = await MySqlConnection.connect(settings);
+      await Future.delayed(Duration(seconds: 1));
+      final results = await conn.query(query);
+      await conn.close();
+      if (results.isEmpty) {
+        return 'Query executed successfully.';
+      } else {
+        return results.map((row) => row.toString()).join('\n');
+      }
+    } catch (e) {
+      return 'Error: $e';
+    }
+  }
+
+  Future<String> executeMSSQLQuery(Map<String, dynamic> config, String query) async {
+    final mssqlConnection = MssqlConnection.getInstance();
+
+    try {
+      final connected = await mssqlConnection.connect(
+        ip: config['dburl'],
+        port: config['dbport'].toString(),
+        databaseName: config['dbname'],
+        username: config['dbuser'],
+        password: config['dbpassword'],
+      );
+
+      if (!connected) throw Exception('Connection failed.');
+
+      final results = await mssqlConnection.writeData(query);
+      await mssqlConnection.disconnect();
+
+      if (results.isEmpty) {
+        return 'Query executed successfully.';
+      } else {
+        return results;
+      }
+    } catch (e) {
+      return 'Error: $e';
+    }
+  }
+
+  Future<String> executeMongoDBQuery(Map<String, dynamic> config, String query) async {
+    String connectionString = 'mongodb+srv://${config["dbuser"]}:${config["dbpassword"]}@${config["cluster"]}.${config["dburl"]}:${config["dbport"]}/${config["dbname"]}?ssl=${config["ssl"] == 'yes' ? 'true' : 'false'}';
+    var db = await Db.create(connectionString);
+    try {
+      await db.open();
+
+      final collectionName = query.split('.')[0].trim();
+      final command = query.split('.')[1].trim();
+
+      final collection = db.collection(collectionName);
+      dynamic result;
+
+      if (command.startsWith('find')) {
+        final filterStart = query.indexOf('(') + 1;
+        final filterEnd = query.lastIndexOf(')');
+        final filterString = query.substring(filterStart, filterEnd).trim();
+        final filter = filterString.isNotEmpty ? jsonDecode(filterString) : {};
+
+        result = await collection.find(filter).toList();
+      } else if (command.startsWith('insert')) {
+        final docString = query.substring(query.indexOf('(') + 1, query.lastIndexOf(')'));
+        final document = jsonDecode(docString);
+
+        result = await collection.insertOne(document);
+      } else if (command.startsWith('update')) {
+        final parts = query.substring(query.indexOf('(') + 1, query.lastIndexOf(')')).split(',');
+        final filter = jsonDecode(parts[0].trim());
+        final update = jsonDecode(parts[1].trim());
+        result = await collection.updateOne(filter, update);
+      } else if (command.startsWith('delete')) {
+        final filterString = query.substring(query.indexOf('(') + 1, query.lastIndexOf(')')).trim();
+        final filter = jsonDecode(filterString);
+
+        result = await collection.deleteMany(filter);
+      } else if (command.startsWith('aggregate')) {
+        final pipelineString = query.substring(query.indexOf('['), query.lastIndexOf(']') + 1);
+        final pipeline = jsonDecode(pipelineString) as List<dynamic>;
+
+        result = await collection.aggregate(pipeline);
+      } else {
+        throw Exception('Unsupported command: $command');
+      }
+
+      await db.close();
+
+      // Process the result into a user-friendly string
+      if (result is List) {
+        return jsonEncode(result); // Encode lists (like find results) to JSON
+      } else if (result is WriteResult) {
+        return 'Matched: ${result.nMatched}, Modified: ${result.nModified}, Inserted: ${result.nInserted}';
+      } else {
+        return result.toString(); // Default fallback for other types
+      }
+    } catch (e) {
+      await db.close();
+      return 'Error: $e';
     }
   }
 }

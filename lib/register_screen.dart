@@ -11,13 +11,25 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _repeatPasswordController = TextEditingController();
   final _auth = FirebaseAuth.instance;
 
   void registerUser() async {
+    if (_passwordController.text.trim() !=
+        _repeatPasswordController.text.trim()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match.')),
+      );
+      return;
+    }
+
     try {
       await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Account created successfully!'))
       );
       Navigator.pushReplacementNamed(context, '/main');
     } catch (e) {
@@ -43,6 +55,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _passwordController,
               obscureText: true,
               decoration: const InputDecoration(labelText: 'Password'),
+            ),
+            TextFormField(
+              controller: _repeatPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Repeat Password'),
             ),
             const SizedBox(height: 16),
             ElevatedButton(

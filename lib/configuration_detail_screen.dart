@@ -4,8 +4,9 @@ import 'database_service.dart';
 
 class ConfigurationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> config;
+  final dynamic status;
 
-  const ConfigurationDetailScreen({Key? key, required this.config}) : super(key: key);
+  const ConfigurationDetailScreen({Key? key, required this.config, required this.status}) : super(key: key);
 
   @override
   _ConfigurationDetailScreenState createState() => _ConfigurationDetailScreenState();
@@ -225,6 +226,16 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
                   onPressed: _saveConfiguration,
                   child: const Text('Save'),
                 ),
+              ElevatedButton(
+                onPressed: widget.status == 'Online'
+                    ? () => Navigator.pushNamed(
+                          context,
+                          '/query-screen',
+                          arguments: widget.config,
+                        )
+                    : null,
+                child: const Text('Send Query'),
+              ),
             ],
           ),
         ),
