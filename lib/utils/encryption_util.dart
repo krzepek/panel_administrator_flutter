@@ -1,5 +1,5 @@
 import 'package:encrypt/encrypt.dart' as encrypt;
-import 'config.dart';
+import '../config.dart';
 
 class EncryptionUtil {
   static final _key = encrypt.Key.fromUtf8(hashKey);

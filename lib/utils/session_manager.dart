@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'token_service.dart';
+import '../services/token_service.dart';
 
 class SessionManager {
   static final SessionManager _instance = SessionManager._internal();
@@ -51,5 +51,9 @@ class SessionManager {
   void stopSession() {
     _inactivityTimer?.cancel();
     _isSessionActive = false;
+  }
+
+  bool checkSession() {
+    return _isSessionActive;
   }
 }

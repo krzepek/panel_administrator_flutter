@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'database_service.dart';
+import '../services/database_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'token_service.dart';
-import 'session_manager.dart';
+import '../services/token_service.dart';
+import '../utils/session_manager.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -103,25 +103,27 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _refreshDatabaseInfo() async {
     try {
-      await _databaseService.ensureConnectionOpen();
+      if(SessionManager().checkSession()) {
+        await _databaseService.ensureConnectionOpen();
 
-      final updatedInfo = <String, Map<String, dynamic>>{};
-      for (var config in _configurations) {
-        final configId = config['id'].toString();
-        try {
-          if(mounted) {
-            final dbInfo = await _databaseService.fetchDatabaseInfo(config, context);
-            updatedInfo[configId] = dbInfo;
+        final updatedInfo = <String, Map<String, dynamic>>{};
+        for (var config in _configurations) {
+          final configId = config['id'].toString();
+          try {
+            if(mounted) {
+              final dbInfo = await _databaseService.fetchDatabaseInfo(config, context);
+              updatedInfo[configId] = dbInfo;
+            }
+          } catch (e) {
+            updatedInfo[configId] = {'status': 'Error', 'size': '0'};
           }
-        } catch (e) {
-          updatedInfo[configId] = {'status': 'Error', 'size': '0'};
         }
-      }
 
-      if (mounted) {
-        setState(() {
-          _dynamicInfo = updatedInfo;
-        });
+        if (mounted) {
+          setState(() {
+            _dynamicInfo = updatedInfo;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {

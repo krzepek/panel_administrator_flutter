@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'login_screen.dart';
-import 'register_screen.dart';
-import 'main_screen.dart';
-import 'add_configuration_screen.dart';
-import 'configuration_detail_screen.dart';
-import 'account_settings_screen.dart';
-import 'query_screen.dart';
-import 'forgot_password_screen.dart';
-import 'route_observer.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/main_screen.dart';
+import 'screens/add_configuration_screen.dart';
+import 'screens/configuration_detail_screen.dart';
+import 'screens/account_settings_screen.dart';
+import 'screens/query_screen.dart';
+import 'screens/forgot_password_screen.dart';
+import 'utils/route_observer.dart';
 
 final RouteObserver<PageRoute<dynamic>> routeObserver = NavigationObserver();
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
