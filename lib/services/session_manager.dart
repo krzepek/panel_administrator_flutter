@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../services/token_service.dart';
+import '../utils/token_service.dart';
 
 class SessionManager {
   static final SessionManager _instance = SessionManager._internal();
