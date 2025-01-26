@@ -6,7 +6,7 @@ import 'package:mongo_dart/mongo_dart.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:postgres/postgres.dart';
 import '../config.dart';
-import 'token_service.dart';
+import '../utils/token_service.dart';
 import '../utils/encryption_util.dart';
 
 class DatabaseService {

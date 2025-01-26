@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/database_service.dart';
-import '../utils/session_manager.dart';
+import '../services/session_manager.dart';
 import '../models/password_field.dart';
 
 class AddConfigurationScreen extends StatefulWidget {

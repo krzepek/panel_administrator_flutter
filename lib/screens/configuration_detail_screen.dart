@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:panel_administrator_flutter/utils/session_manager.dart';
+import '../services/session_manager.dart';
 import '../services/database_service.dart';
 import '../models/password_field.dart';
 

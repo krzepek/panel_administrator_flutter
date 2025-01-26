@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/token_service.dart';
-import '../utils/session_manager.dart';
+import '../utils/token_service.dart';
+import '../services/session_manager.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);

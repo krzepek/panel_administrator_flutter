@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/token_service.dart';
-import '../utils/session_manager.dart';
+import '../utils/token_service.dart';
+import '../services/session_manager.dart';
 import '../models/password_field.dart';
 
 class LoginScreen extends StatefulWidget {

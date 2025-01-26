@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'session_manager.dart';
+import '../services/session_manager.dart';
 import '../main.dart';
 
 class NavigationObserver extends RouteObserver<PageRoute<dynamic>> {

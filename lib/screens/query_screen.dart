@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
-import '../utils/session_manager.dart'; // Adjust the import based on your project structure
+import '../services/session_manager.dart';
 
 class QueryScreen extends StatefulWidget {
   final Map<String, dynamic> config;
