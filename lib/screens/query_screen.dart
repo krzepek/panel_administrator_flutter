@@ -16,6 +16,7 @@ class _QueryScreenState extends State<QueryScreen> {
   String? _result;
   bool _isLoading = false;
 
+  // Wysyła zapytanie do bazy danych i zwraca wynik.
   Future<void> _sendQuery() async {
     if(mounted) {
       setState(() {
@@ -48,6 +49,7 @@ class _QueryScreenState extends State<QueryScreen> {
     }
   }
 
+  // Wykonuje zapytanie do bazy danych na podstawie konfiguracji.
   Future<String> _executeQuery(Map<String, dynamic> config, String query) async {
     final dbService = DatabaseService();
 

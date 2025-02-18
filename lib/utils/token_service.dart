@@ -7,23 +7,25 @@ class TokenService {
   static const String _tokenKey = 'jwt_token';
   static const String _secureSecret = secretKey;
 
-  /// Save the JWT token to shared preferences
+  // Zapisuje token JWT do shared preferences
   Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
   }
 
-  /// Retrieve the JWT token from shared preferences
+  // Pobiera token JWT z shared preferences
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_tokenKey);
   }
 
+  // Usuwa token JWT z shared preferences
   Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
   }
 
+  // Sprawdza, czy token JWT jest ważny
   Future<bool> isTokenValid() async {
     final token = await getToken();
     if (token == null) return false;
@@ -39,6 +41,7 @@ class TokenService {
     }
   }
 
+  // Dekoduje token JWT
   Future<Map<String, dynamic>?> getDecodedToken() async {
     final token = await getToken();
     if (token == null) return null;
@@ -50,6 +53,7 @@ class TokenService {
     }
   }
 
+  // Generuje token JWT na podstawie ID użytkownika
   Future<void> generateToken(String userId) async {
     final jwt = JWT({
       'userId': userId,
@@ -63,6 +67,7 @@ class TokenService {
     await saveToken(token);
   }
 
+  // Waliduje token JWT
   Future<bool> validateToken(String token) async {
     try {
       JwtDecoder.decode(token);
@@ -72,6 +77,7 @@ class TokenService {
     }
   }
 
+  // Przedłuża token JWT
   Future<void> prolongToken() async {
     try {
       final token = await getToken();

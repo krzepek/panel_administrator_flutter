@@ -12,6 +12,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   final _auth = FirebaseAuth.instance;
 
+  // Wysyła e-mail resetujący hasło przez Firebase Authentication.
   Future<void> _sendResetEmail() async {
     try {
       await _auth.sendPasswordResetEmail(email: _emailController.text.trim());

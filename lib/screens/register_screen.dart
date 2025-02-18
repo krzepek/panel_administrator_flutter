@@ -17,6 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _repeatPasswordController = TextEditingController();
   final _auth = FirebaseAuth.instance;
 
+  // Rejestruje nowego użytkownika w Firebase i generuje token JWT (TokenService).
   void registerUser() async {
     if (_passwordController.text.trim() !=
         _repeatPasswordController.text.trim()) {
@@ -58,7 +59,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
+      appBar: AppBar(title: const Text('Register Screen')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

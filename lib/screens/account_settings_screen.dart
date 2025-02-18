@@ -31,6 +31,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
   }
 
+  // Wyświetla okno dialogowe do zmiany adresu e-mail (Firebase).
   Future<void> _changeEmail(BuildContext context) async {
     String? email;
     String? confirmEmail;
@@ -117,7 +118,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     );
   }
 
-
+  // Wyświetla okno dialogowe do zmiany hasła (Firebase).
   Future<void> _changePassword(BuildContext context) async {
     String? password;
     String? confirmPassword;
@@ -221,6 +222,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     );
   }
 
+  // Usuwa konto użytkownika po jego ponownym uwierzytelnieniu.
   Future<void> _deleteAccount(BuildContext context) async {
     String? password;
 

@@ -26,6 +26,7 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
   final _auth = FirebaseAuth.instance;
   final DatabaseService _databaseService = DatabaseService();
 
+  // Zapisuje nową konfigurację bazy danych, korzystając z DatabaseService.
   void _saveConfiguration() async {
     final userId = _auth.currentUser?.uid ?? '';
 
@@ -55,7 +56,7 @@ class _AddConfigurationScreenState extends State<AddConfigurationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Configuration')),
+      appBar: AppBar(title: const Text('Add Configuration Screen')),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),

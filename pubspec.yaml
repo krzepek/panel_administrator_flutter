@@ -43,9 +43,12 @@ dependencies:
   jwt_decoder: ^2.0.1
   crypto: ^3.0.6
   encrypt: ^5.0.3
+  mockito: ^5.4.5
 
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
 

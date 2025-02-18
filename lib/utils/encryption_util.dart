@@ -6,6 +6,7 @@ class EncryptionUtil {
   static final _iv = encrypt.IV.fromUtf8(hashKey.substring(0, 16));
   static final _encrypter = encrypt.Encrypter(encrypt.AES(_key, mode: encrypt.AESMode.cbc));
 
+  // Szyfruje hasło za pomocą klucza i wektora inicjalizacyjnego.
   static String encryptPassword(String password) {
     try {
       if (password.isEmpty) {
@@ -19,6 +20,7 @@ class EncryptionUtil {
     }
   }
 
+  // Deszyfruje hasło za pomocą klucza i wektora inicjalizacyjnego.
   static String decryptPassword(String encryptedPassword) {
     try {
       if (encryptedPassword.isEmpty) {

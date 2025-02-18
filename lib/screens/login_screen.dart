@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _auth = FirebaseAuth.instance;
 
+  // Loguje użytkownika do Firebase i generuje token JWT (TokenService).
   Future<void> loginUser(String email, String password) async {
     try {
       final userCredential = await _auth.signInWithEmailAndPassword(
@@ -44,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
       canPop: false,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Login'),
+          title: const Text('Login Screen'),
           automaticallyImplyLeading: false,
           ),
         body: Padding(

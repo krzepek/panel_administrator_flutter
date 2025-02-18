@@ -63,6 +63,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  // Pobiera konfiguracje baz danych z serwera i wyświetla je w liście.
   Future<void> _fetchConfigurations() async {
     if(mounted) {
       setState(() {
@@ -91,8 +92,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-
-
+  // Regularnie odświeża informacje o statusie i rozmiarze każdej bazy.
   Future<void> _startPeriodicRefresh() async {
     _refreshTimer = Timer.periodic(const Duration(seconds: 20), (timer) async {
       if (mounted) {
@@ -101,6 +101,7 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  // Pobiera informacje o statusie i rozmiarze każdej bazy.
   Future<void> _refreshDatabaseInfo() async {
     try {
       if(SessionManager().checkSession()) {
@@ -136,6 +137,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  // Wyświetla okno dialogowe z potwierdzeniem usunięcia konfiguracji.
   Future<bool?> _showDeleteConfirmationDialog() {
     return showDialog<bool>(
       context: context,
@@ -158,7 +160,7 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-
+  // Usuwa konfigurację z serwera.
   Future<void> _deleteConfiguration(String id) async {
     SessionManager().resetSession(context);
     final shouldDelete = await _showDeleteConfirmationDialog();
@@ -175,7 +177,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-
+  // Przechodzi do ekranu szczegółów konfiguracji.
   void _navigateToDetails(Map<String, dynamic> config, dynamic status) {
     SessionManager().resetSession(context);
     _refreshTimer?.cancel();
@@ -192,6 +194,7 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  // Przechodzi do ekranu dodawania nowej konfiguracji.
   void _navigateToAddConfiguration() {
     SessionManager().resetSession(context);
     _refreshTimer?.cancel();

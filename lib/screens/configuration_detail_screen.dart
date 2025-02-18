@@ -56,6 +56,7 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
     super.dispose();
   }
 
+  // Przełącza tryb edycji konfiguracji (pola włączone/wyłączone).
   void _toggleEditMode() {
     if(mounted) {
       setState(() {
@@ -64,6 +65,7 @@ class _ConfigurationDetailScreenState extends State<ConfigurationDetailScreen> {
     }
   }
 
+  // Zapisuje zmodyfikowaną konfigurację w bazie (DatabaseService).
   void _saveConfiguration() async {
     final userId = _auth.currentUser?.uid ?? '';
     final configId = widget.config['id'];

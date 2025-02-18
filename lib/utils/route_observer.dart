@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/session_manager.dart';
 import '../main.dart';
 
+// Obserwator trasy, który resetuje sesję użytkownika po zmianie trasy.
 class NavigationObserver extends RouteObserver<PageRoute<dynamic>> {
 
   @override
@@ -22,6 +23,7 @@ class NavigationObserver extends RouteObserver<PageRoute<dynamic>> {
     _handleRouteChange();
   }
 
+  // Resetuje sesję użytkownika po zmianie trasy.
   void _handleRouteChange() {
     final context = navigatorKey.currentContext;
     if (context != null) {

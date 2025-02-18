@@ -22,6 +22,7 @@ class SessionManager {
     }
   }
 
+  // Resetuje timer i przedłuża token JWT.
   void _resetTimer(BuildContext context) async {
     try {
       _inactivityTimer?.cancel();

@@ -31,6 +31,7 @@ class DatabaseService {
     }
   }
 
+  // Tworzy tabelę konfiguracji, jeśli nie istnieje.
   Future<void> _createTableIfNotExists() async {
     await _connection.query('''
       CREATE TABLE IF NOT EXISTS configurations (
@@ -49,6 +50,7 @@ class DatabaseService {
     ''');
   }
 
+  // Sprawdza, czy połączenie z bazą danych jest otwarte, a jeśli nie, próbuje je otworzyć.
   Future<void> ensureConnectionOpen() async {
     try {
       if (_connection.isClosed) {
@@ -59,6 +61,7 @@ class DatabaseService {
     }
   }
 
+  // Zamyka i ponownie otwiera połączenie z bazą danych.
   Future<void> _recreateConnection() async {
     try {
       if (!_connection.isClosed) {
@@ -80,22 +83,23 @@ class DatabaseService {
     }
   }
 
+  // Sprawdza, czy token JWT jest ważny, a jeśli nie, wyświetla komunikat o błędzie i przekierowuje użytkownika do ekranu logowania.
   Future<void> ensureTokenIsValid(BuildContext context) async {
-  final isValid = await _tokenService.isTokenValid();
-  if (!isValid) {
-    if(context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid or expired token. Please log in again.')),
-      );
-    }
-    await _tokenService.clearToken();
-    if(context.mounted) {
-      Navigator.pushReplacementNamed(context, '/login');
+    final isValid = await _tokenService.isTokenValid();
+    if (!isValid) {
+      if(context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid or expired token. Please log in again.')),
+        );
+      }
+      await _tokenService.clearToken();
+      if(context.mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     }
   }
-}
 
-
+  // Pobiera konfiguracje bazy danych dla danego użytkownika Firebase.
   Future<List<Map<String, dynamic>>> fetchConfigurations(String firebaseUserId, BuildContext context) async {
     await ensureTokenIsValid(context);
     await ensureConnectionOpen();
@@ -112,6 +116,7 @@ class DatabaseService {
     return configurations;
   }
 
+  // Dodaje nową konfigurację bazy danych dla danego użytkownika Firebase.
   Future<void> addConfiguration(String firebaseUserId, Map<String, dynamic> config, BuildContext context) async {
     await ensureTokenIsValid(context);
     await ensureConnectionOpen();
@@ -122,6 +127,7 @@ class DatabaseService {
     );
   }
 
+  // Aktualizuje istniejącą konfigurację bazy danych dla danego użytkownika Firebase.
   Future<void> updateConfiguration(String id, String firebaseUserId, Map<String, dynamic> updatedConfig, BuildContext context) async {
     await ensureTokenIsValid(context);
     await ensureConnectionOpen();
@@ -132,6 +138,7 @@ class DatabaseService {
     );
   }
 
+  // Usuwa konfigurację bazy danych dla danego użytkownika Firebase.
   Future<void> deleteConfiguration(String id, String firebaseUserId, BuildContext context) async {
     await ensureTokenIsValid(context);
     await ensureConnectionOpen();
@@ -141,6 +148,7 @@ class DatabaseService {
     );
   }
 
+  // Pobiera informacje o bazie danych na podstawie konfiguracji.
   Future<Map<String, dynamic>> fetchDatabaseInfo(Map<String, dynamic> config, BuildContext context) async {
     switch (config['dbclass']) {
       case 'pgsql':
@@ -189,6 +197,7 @@ class DatabaseService {
     }
   }
 
+  // Pobiera informacje o bazie danych PostgreSQL.
   Future<Map<String, dynamic>> _fetchPostgreSQLInfo(
       String host, int port, String user, String password, String dbName, String ssl, BuildContext context) async {
     try {
@@ -215,6 +224,7 @@ class DatabaseService {
     }
   }
 
+  // Pobiera informacje o bazie danych MySQL.
   Future<Map<String, dynamic>> _fetchMySQLInfo(
       String host, int port, String user, String password, String dbName, String ssl, BuildContext context) async {
     try {
@@ -246,6 +256,7 @@ class DatabaseService {
     }
   }
 
+  // Pobiera informacje o bazie danych MSSQL.
   Future<Map<String, dynamic>> _fetchMsSQLInfo(
       String host, int port, String user, String password, String dbName, String ssl, BuildContext context) async {
     try {
@@ -283,6 +294,7 @@ class DatabaseService {
     }
   }
 
+  // Pobiera informacje o bazie danych MongoDB.
   Future<Map<String, dynamic>> _fetchMongoDBInfo(String host, int port, String user, String password, String dbName, String ssl, String cluster, BuildContext context) async {
     try {
       await ensureTokenIsValid(context);
@@ -304,6 +316,7 @@ class DatabaseService {
     }
   }
 
+  // Wykonuje zapytanie do bazy danych PostgreSQL.
   Future<String> executePostgreSQLQuery(Map<String, dynamic> config, String query, BuildContext context) async {
     try {
       await ensureTokenIsValid(context);
@@ -329,6 +342,7 @@ class DatabaseService {
     }
   }
 
+  // Wykonuje zapytanie do bazy danych MySQL.
   Future<String> executeMySQLQuery(Map<String, dynamic> config, String query, BuildContext context) async {
     try {
       await ensureTokenIsValid(context);
@@ -354,6 +368,7 @@ class DatabaseService {
     }
   }
 
+  // Wykonuje zapytanie do bazy danych MSSQL.
   Future<String> executeMSSQLQuery(Map<String, dynamic> config, String query, BuildContext context) async {
     try {
       await ensureTokenIsValid(context);
@@ -382,6 +397,7 @@ class DatabaseService {
     }
   }
 
+  // Wykonuje zapytanie do bazy danych MongoDB.
   Future<String> executeMongoDBQuery(Map<String, dynamic> config, String query, BuildContext context) async {
     String connectionString = 'mongodb+srv://${config["dbuser"]}:${config["dbpassword"]}@${config["cluster"]}.${config["dburl"]}:${config["dbport"]}/${config["dbname"]}?ssl=${config["ssl"] == 'yes' ? 'true' : 'false'}';
     var db = await Db.create(connectionString);
